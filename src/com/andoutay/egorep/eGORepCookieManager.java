@@ -57,7 +57,7 @@ public class eGORepCookieManager implements Listener
 				newval+=amt;
 				points.put(repper, points.get(repper) - 1);
 
-				if (points.get(repper) >= (totRepPoints - 1) && getSecondsLeft(repper) == 0)
+				if (points.get(repper) == 0 && getSecondsLeft(repper) == 0)
 					times.put(repper, unixTimeNow());
 			}
 			//player is out of rep points to use

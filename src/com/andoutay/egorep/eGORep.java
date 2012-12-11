@@ -153,7 +153,7 @@ public final class eGORep extends JavaPlugin
 		{
 			tellAllPlayers(recipient, direction, newamt);
 			log.info(logPref + sender.getName() + " " + direction + " " + recipient.getName() + "'s reputation to " + newamt);
-			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left to use for the next " + parseTime(cManager.getSecondsLeft(sender.getName())));
+			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left");
 		}
 		
 		return true;
