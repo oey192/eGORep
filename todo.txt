@@ -1,0 +1,15 @@
+
+Add DS functionality -- check with Cyp
+
+remove comments that allow player to set their own rep when done testing
+
+Add config file for DB
+
+Add DB error handling - if user not in database when trying to save data, put user in database
+if table doesn't exist, create table
+
+Add loading of logged in players in onEnable function
+Add saving of currently connected players in onDisable function
+
+add perm node for DS
+add config for DS enabled or not

@@ -1,0 +1,40 @@
+name: eGORep
+main: com.andoutay.egorep.eGORep
+version: 0.2.5
+
+description: >
+             eGORep allows players to give and take reputation away from other players. This plugin will ultimately interface with the reputation system used elsewhere in eGO.
+
+commands:
+    rep:
+        description: Adds one reputation point to the specified player
+        usage: 'usage: /<command> <up|down|check> <playername>. You may not give yourself reputation'
+        permission: egorep.rep
+        permission-message: 'You may not give players reputation'
+
+permissions:
+    egorep.*:
+        description: Gives access to all eGORep commands
+        default: op
+        children:
+            egorep.rep: true
+            egorep.show: true
+    egorep.rep:
+        description: "Allows the player to give, take and check other players' reputation"
+        default: false
+        children:
+            egorep.rep.up: true
+            egorep.rep.down: true
+            egorep.rep.check: true
+    egorep.rep.up:
+        description: Allows the player to give other players reputation
+        default: false
+    egorep.rep.down:
+        description: "Allows the player to take other players' reputation"
+        default: false
+    egorep.rep.check:
+        description: "Allows the player to check their own and other players' reputation"
+        default: false
+    egorep.show:
+        description: Only players with this permission will see reputation messages in chat
+        default: false
