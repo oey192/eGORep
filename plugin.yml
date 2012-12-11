@@ -1,6 +1,6 @@
 name: eGORep
 main: com.andoutay.egorep.eGORep
-version: 0.2.6
+version: 0.3.0
 
 description: >
              eGORep allows players to give and take reputation away from other players. This plugin will ultimately interface with the reputation system used elsewhere in eGO.
@@ -15,7 +15,7 @@ commands:
 permissions:
     egorep.*:
         description: Gives access to all eGORep commands
-        default: op
+        default: false
         children:
             egorep.rep: true
             egorep.show: true

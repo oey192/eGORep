@@ -57,12 +57,12 @@ public class eGORepCookieManager implements Listener
 				newval+=amt;
 				points.put(repper, points.get(repper) - 1);
 
-				if (points.get(repper) == (totRepPoints - 1) && getSecondsLeft(repper) == 0)
+				if (points.get(repper) >= (totRepPoints - 1) && getSecondsLeft(repper) == 0)
 					times.put(repper, unixTimeNow());
 			}
 			//player is out of rep points to use
 			else
-				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + parseTime(getSecondsLeft(repper)) + " before using /rep again");
+				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + eGORep.parseTime(getSecondsLeft(repper)) + " before using /rep again");
 
 			rep.put(recipient, newval);
 		}
@@ -141,16 +141,5 @@ public class eGORepCookieManager implements Listener
 			ans = 0;
 		
 		return ans;
-	}
-	
-	private String parseTime(Long timestamp)
-	{
-		String m, s;
-		long min, sec;
-		min = timestamp / 60;
-		sec = timestamp - min * 60;
-		m = (min == 1) ? "min" : "mins";
-		s = (sec == 1) ? "sec" : "secs";
-		return min + " " + m + " " + sec + " " + s;
 	}
 }

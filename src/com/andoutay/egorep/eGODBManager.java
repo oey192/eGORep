@@ -40,7 +40,6 @@ public class eGODBManager {
 	
 	public void setAll(final String name, final int rep, final int points, final Long timestamp)
 	{
-		eGORep.log.info("async: " + eGORepConfig.useAsync);
 		if (eGORepConfig.useAsync)
 		{
 			scheduler.runTaskAsynchronously(plugin, new Runnable() {
@@ -71,25 +70,42 @@ public class eGODBManager {
 	{
 		Connection con = getSQLConnection();
 		PreparedStatement stmt = null;
-		String q = "UPDATE " + table + " SET `" + dbField + "` = ?";
+		String q = "UPDATE " + table + " SET " + dbField + " = ? WHERE `IGN` = ?";
 		int success = 0;
 		
 		try
 		{
 			stmt = con.prepareStatement(q);
-			stmt.setFloat(1, val);
+			stmt.setLong(1, val);
+			stmt.setString(2, name);
 			
 			success = stmt.executeUpdate();
 			stmt.close();
 		}
 		catch (SQLException e)
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		
 		if (success < 1)
 		{
-			// TODO Instead of updating user, add them to DB!
+			eGORep.log.info("Adding " + name +" to the database");
+			if (dbField.equalsIgnoreCase("points"))
+				val = 3;
+			q = "INSERT INTO " + table + " (`IGN`, `" + dbField + "`) VALUES (?, ?)";
+			try
+			{
+				stmt = con.prepareStatement(q);
+				stmt.setString(1, name);
+				stmt.setLong(2,  val);
+				
+				success = stmt.executeUpdate();
+				stmt.close();
+			}
+			catch (SQLException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -140,28 +156,75 @@ public class eGODBManager {
 		}
 		catch (SQLException e)
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		
-		if (success < 1 && dbField.equalsIgnoreCase("points"))
-			ans = 3;
+		if (success < 1)
+		{
+			eGORep.log.info("Adding " + name +" to the database");
+			int insVal = 0;
+			if (dbField.equalsIgnoreCase("points"))
+				insVal = 3;
+			
+			q = "INSERT INTO " + table + " (`IGN`, `" + dbField + "`) VALUES (?, ?)";
+			try
+			{
+				stmt = con.prepareStatement(q);
+				stmt.setString(1, name);
+				stmt.setLong(2, insVal);
+				
+				success = stmt.executeUpdate();
+				stmt.close();
+			}
+			catch (SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
 		
 		return ans;
 	}
 
-	public void setRep(String name, int rep)
+	public void setRep(final String name, final int rep)
 	{
-		setVal("rep", name, rep);
+		if (eGORepConfig.useAsync)
+		{
+			scheduler.runTaskAsynchronously(plugin, new Runnable() {
+				public void run() {
+					setVal("rep", name, rep);					
+				}
+			});
+		}
+		else
+			setVal("rep", name, rep);
 	}
 	
-	public void setRemPoints(String name, int points)
+	public void setRemPoints(final String name, final int points)
 	{
-		setVal("points", name, points);
+		if (eGORepConfig.useAsync)
+		{
+			scheduler.runTaskAsynchronously(plugin, new Runnable() {
+				public void run() {
+					setVal("points", name, points);					
+				}
+			});
+		}
+		else
+			setVal("points", name, points);
 	}
 
-	public void setTime(String name, Long timestamp)
+	public void setTime(final String name, final Long timestamp)
 	{
-		setVal("time", name, timestamp);
+		if (eGORepConfig.useAsync)
+		{
+			scheduler.runTaskAsynchronously(plugin, new Runnable() {
+				public void run() {
+					setVal("time", name, timestamp);					
+				}
+			});
+		}
+		else
+			setVal("time", name, timestamp);
 	}
 
 	public int getRep(String name) {
@@ -191,4 +254,12 @@ CREATE TABLE  `mcPluginTest`.`egorep` (
 `time` BIGINT NOT NULL ,
 PRIMARY KEY (  `IGN` )
 ) ENGINE = MYISAM ;
+
+CREATE TABLE IF NOT EXISTS `egorep` (
+  `IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL,
+  `rep` int(11) NOT NULL DEFAULT '0',
+  `points` int(11) NOT NULL DEFAULT '3',
+  `time` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`IGN`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 */

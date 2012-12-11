@@ -1,8 +1,5 @@
-remove comments that allow player to set their own rep when done testing
-change op to false for root permission node
 
-
-Add DB error handling - if user not in database when trying to save data, put user in database
+Add DB error handling
 if table doesn't exist, create table
 if database doesn't exist, create database??
 
@@ -10,5 +7,3 @@ add perm node for DS
 add config for DS enabled or not
 
 //I don't do permissions the same way Cyp does them - do I need to fix that?
-
-thread DB accesses in case of slowness

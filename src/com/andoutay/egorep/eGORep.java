@@ -153,7 +153,7 @@ public final class eGORep extends JavaPlugin
 		{
 			tellAllPlayers(recipient, direction, newamt);
 			log.info(logPref + sender.getName() + " " + direction + " " + recipient.getName() + "'s reputation to " + newamt);
-			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left to use this hour");
+			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left to use for the next " + parseTime(cManager.getSecondsLeft(sender.getName())));
 		}
 		
 		return true;
@@ -161,7 +161,6 @@ public final class eGORep extends JavaPlugin
 	
 	private boolean checkRep(CommandSender sender, String[] args)
 	{
-		log.info("len: " + args.length);
 		int rep = 0;
 		String name;
 		Player recipient;
@@ -203,5 +202,18 @@ public final class eGORep extends JavaPlugin
 	{
 		sender.sendMessage(chPref + "Player matching " + name + " not found");
 		return true;
+	}
+	
+	public static String parseTime(Long timestamp)
+	{
+		String h, m, s;
+		long hour, min, sec;
+		hour = timestamp / 3600;
+		min = (timestamp - hour * 3600) / 60;
+		sec = timestamp- hour * 3600 - min * 60;
+		h = (hour == 1) ? "hour" : "hours";
+		m = (min == 1) ? "min" : "mins";
+		s = (sec == 1) ? "sec" : "secs";
+		return hour + " " + h + " " + min + " " + m + " " + sec + " " + s;
 	}
 }
