@@ -21,7 +21,7 @@ public class eGODBManager {
 		
 		try
 		{
-			con = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/mcPluginTest", "mcPluginTest", "29cXaC4YuZFb4yLa");
+			con = DriverManager.getConnection(eGORepConfig.sqlURL, eGORepConfig.sqlDBName, eGORepConfig.sqlPassword);
 			
 			return con;
 		}

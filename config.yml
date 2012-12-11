@@ -1,0 +1,9 @@
+mysql:
+    host: localhost
+    port: '3306'
+    dbName: ''
+    user: ''
+    password: ''
+repPerUnit: 3
+refreshSecs: 3600
+useDS: 'false'

@@ -32,6 +32,7 @@ public class eGORepCookieManager implements Listener
 		
 		//initialize newval to 1 in case recipient isn't in database
 		int newval = 1;
+		
 		//get recipient's rep if they're in the hashmap
 		if (rep.containsKey(recipient))
 			newval = rep.get(recipient);
@@ -40,9 +41,9 @@ public class eGORepCookieManager implements Listener
 		if (!points.containsKey(repper))
 			points.put(repper, 3);
 		
-		//check if player needs new rep (or )
-		if (times.containsKey(repper) && getSecondsLeft(repper) == 0 && points.get(repper) == 0)
-			points.put(repper, 3);
+		//check if player needs new rep
+		if (getSecondsLeft(repper) == 0 && points.get(repper) <= 0)
+			points.put(repper, eGORepConfig.repPerUnit);
 		
 		//apply the reputation modification if repper is not out of points
 		if (points.get(repper) > 0)
@@ -50,14 +51,12 @@ public class eGORepCookieManager implements Listener
 			newval+=amt;
 			points.put(repper, points.get(repper) - 1);
 			
-			if (points.get(repper) <= 0 && ((times.containsKey(repper) && getSecondsLeft(repper) == 0) || !times.containsKey(repper)))
+			if (points.get(repper) <= 0 && getSecondsLeft(repper) == 0)
 				times.put(repper, unixTimeNow());
 		}
 		//player is out of rep points to use
 		else
-		{
 			return -1;
-		}
 		
 		//rep should never be negative
 		if (newval < 0)
@@ -75,8 +74,7 @@ public class eGORepCookieManager implements Listener
 	@EventHandler(priority=EventPriority.HIGH)
 	public void onPlayerQuit(PlayerQuitEvent event)
 	{
-		String name = event.getPlayer().getName();
-		
+		saveAndUnLoadPlayer(event.getPlayer().getName());
 	}
 	
 	public void loadPlayer(String name)
@@ -129,7 +127,7 @@ public class eGORepCookieManager implements Listener
 		if (!times.containsKey(name))
 			times.put(name, (long)0);
 		
-		ans = 3600 - (unixTimeNow() - times.get(name));
+		ans = eGORepConfig.refreshSecs - (unixTimeNow() - times.get(name));
 		if (ans < 0)
 			ans = 0;
 		

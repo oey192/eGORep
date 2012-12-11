@@ -7,7 +7,6 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-//import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -17,24 +16,26 @@ public final class eGORep extends JavaPlugin
 {
 	public static Logger log = Logger.getLogger("Minecraft");
 	public static String chPref = ChatColor.GREEN + "[" + ChatColor.RESET + "Rep" + ChatColor.GREEN + "] " + ChatColor.RESET;
-	public static String logPref = "[eGORep] ";
+	public static String logPref = "[Rep] ";
 	private eGORepCookieManager cManager = new eGORepCookieManager();
-	//[green]Playername[/green] reputation increased to [green]#[/green]
-	//[Rep] You have # reputation points left to use this hour
 	
+	public void onLoad()
+	{
+		new eGORepConfig(this);
+	}
 	
 	@Override
 	public void onEnable()
 	{
-		
-		//new eGORepConfig(this);
-		//eGORepConfig.onEnable();
-		//PluginDescriptionFile pdf = this.getDescription();
 		PluginManager pm = this.getServer().getPluginManager();
 		
 		//get stuff from db for all currently connected players - e.g. if it's a reload
 		pm.registerEvents(cManager, this);
 		
+		//load config
+		eGORepConfig.onEnable();
+		
+		//load the data for any connected 
 		for (Player p: getServer().getOnlinePlayers())
 			cManager.loadPlayer(p.getName());
 		

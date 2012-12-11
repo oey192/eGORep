@@ -6,14 +6,15 @@ public class eGORepConfig
 {
 	private static Configuration config;
 	
-	public static int repPerHour;
+	public static int repPerUnit, refreshSecs;
 	public static boolean useDS;	//DS = Dedicated Supporter
-	public static String sqlURL, sqlHost, sqlPort, sqlTableName, sqlDBName, sqlUser, sqlPassword;
+	public static String sqlURL, sqlHost, sqlPort, sqlDBName, sqlUser, sqlPassword;
 	
 	eGORepConfig(eGORep plugin)
 	{
 		config = plugin.getConfig().getRoot();
-		config.options().copyDefaults(true);
+		if (config.getString("mysql.host") == null || config.getString("mysql.dbName") == null);
+			config.options().copyDefaults(true);
 		plugin.saveConfig();
 	}
 	
@@ -24,7 +25,8 @@ public class eGORepConfig
 	
 	private static void loadConfigVals()
 	{
-		repPerHour = config.getInt("repPerHour");
+		repPerUnit = config.getInt("repPerUnit");
+		refreshSecs = config.getInt("refreshSecs");
 		useDS = config.getBoolean("useDS");
 		sqlHost = config.getString("mysql.host");
 		sqlPort = config.getString("mysql.port");

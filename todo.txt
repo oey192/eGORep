@@ -9,7 +9,8 @@ msql:
 	dbName
 	user
 	password
-repPerHour
+repPerUnit
+refreshSecs
 useDS
 
 should be Config initialized in onLoad or onEnable?
