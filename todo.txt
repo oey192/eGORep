@@ -1,15 +1,32 @@
-
-Add DS functionality -- check with Cyp
-
 remove comments that allow player to set their own rep when done testing
 
 Add config file for DB
 
+config values:
+msql:
+	addr
+	port
+	dbName
+	user
+	password
+repPerHour
+useDS
+
+should be Config initialized in onLoad or onEnable?
+
 Add DB error handling - if user not in database when trying to save data, put user in database
 if table doesn't exist, create table
+if database doesn't exist, create database??
 
-Add loading of logged in players in onEnable function
-Add saving of currently connected players in onDisable function
+Do we need to allow for use of SQLite or do we know we will always be able to use MySQL?
 
 add perm node for DS
 add config for DS enabled or not
+
+I don't do permissions the same way Cyp does them - do I need to fix that?
+
+add setRep command for console only!
+
+add additional permission for check other players' rep
+
+thread DB accesses in case of slowness

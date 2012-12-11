@@ -26,7 +26,7 @@ public class eGORepCookieManager implements Listener
 	
 	private int modCookieForName(String repper, String recipient, int amt)
 	{
-		//can give rep to self
+		//can't give rep to self
 		//if (repper == recipient)
 		//	return -2;
 		
@@ -69,16 +69,25 @@ public class eGORepCookieManager implements Listener
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event)
 	{
-		String name = event.getPlayer().getName();;
+		loadPlayer(event.getPlayer().getName());
+	}
+	
+	@EventHandler(priority=EventPriority.HIGH)
+	public void onPlayerQuit(PlayerQuitEvent event)
+	{
+		String name = event.getPlayer().getName();
+		
+	}
+	
+	public void loadPlayer(String name)
+	{
 		rep.put(name, dbManager.getRep(name));
 		points.put(name, dbManager.getRemPoints(name));
 		times.put(name, dbManager.getTime(name));
 	}
 	
-	@EventHandler(priority=EventPriority.HIGH)
-	public void onPlayerQuit(PlayerQuitEvent event)
-	{	
-		String name = event.getPlayer().getName();
+	public void saveAndUnLoadPlayer(String name)
+	{
 		dbManager.setAll(name, rep.get(name), points.get(name), times.get(name));
 		rep.remove(name);
 		points.remove(name);

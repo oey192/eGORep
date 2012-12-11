@@ -21,17 +21,12 @@ public class eGODBManager {
 		
 		try
 		{
-			//if we can use SQL
-			//if (true)
-				con = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/mcPluginTest", "mcPluginTest", "29cXaC4YuZFb4yLa");
-			//else
-			//	return null;
+			con = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/mcPluginTest", "mcPluginTest", "29cXaC4YuZFb4yLa");
 			
 			return con;
 		}
 		catch (SQLException e)
 		{
-			eGORep.log.info("Noooooooo");
 			e.printStackTrace();
 		}
 		
@@ -86,8 +81,7 @@ public class eGODBManager {
 			
 			result = stmt.executeQuery();
 			if (result.next())
-				eGORep.log.info("Oh hai there");
-			ans = result.getLong(dbField);
+				ans = result.getLong(dbField);
 			stmt.close();
 		}
 		catch (SQLException e)

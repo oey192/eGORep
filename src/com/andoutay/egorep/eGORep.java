@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.andoutay.egorep.eGORepConfig;
+
 public final class eGORep extends JavaPlugin
 {
 	public static Logger log = Logger.getLogger("Minecraft");
@@ -24,11 +26,17 @@ public final class eGORep extends JavaPlugin
 	@Override
 	public void onEnable()
 	{
+		
+		//new eGORepConfig(this);
+		//eGORepConfig.onEnable();
 		//PluginDescriptionFile pdf = this.getDescription();
 		PluginManager pm = this.getServer().getPluginManager();
 		
 		//get stuff from db for all currently connected players - e.g. if it's a reload
 		pm.registerEvents(cManager, this);
+		
+		for (Player p: getServer().getOnlinePlayers())
+			cManager.loadPlayer(p.getName());
 		
 		log.info(logPref + "enabled successfully!");
 	}
@@ -36,7 +44,8 @@ public final class eGORep extends JavaPlugin
 	@Override
 	public void onDisable()
 	{
-		//save everyone (if they're still here at this point???)
+		for (Player p: getServer().getOnlinePlayers())
+			cManager.saveAndUnLoadPlayer(p.getName());
 		
 		getServer().getScheduler().cancelTasks(this);
 		log.info(logPref + "disabled");
@@ -53,11 +62,7 @@ public final class eGORep extends JavaPlugin
 		else if (isDown(cmd, player, args))
 			return execRep("down", sender, args);
 		else if (isCheck(cmd, player, args))
-		{
-			boolean ans = checkRep(player, args);
-			log.info("ans: " + ans);
-			return ans;
-		}
+			return checkRep(player, args);
 		
 		return false;
 	}
@@ -90,7 +95,6 @@ public final class eGORep extends JavaPlugin
 		        		p.sendMessage(msg);
 		    }
 		}
-		log.info(logPref + recipient.getName() + "'s reputation " + str + " to " + amt);
 	}
 	
 	private boolean execRep(String direction, CommandSender sender, String[] args)
@@ -117,6 +121,7 @@ public final class eGORep extends JavaPlugin
 		if (newamt >= 0)
 		{
 			tellAllPlayers(recipient, direction, newamt);
+			log.info(logPref + sender.getName() + " " + direction + " " + recipient.getName() + "'s reputation to " + newamt);
 			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left to use this hour");
 		}
 		else if (newamt == -1)
