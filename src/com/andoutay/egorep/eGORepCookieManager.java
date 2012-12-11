@@ -2,6 +2,7 @@ package com.andoutay.egorep;
 
 import java.util.HashMap;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -15,53 +16,56 @@ public class eGORepCookieManager implements Listener
 	private HashMap<String, Long> times;
 	private eGODBManager dbManager;
 	
-	public eGORepCookieManager()
+	public eGORepCookieManager(eGORep plugin)
 	{
+		//eGORep.log.info("thingy: " + plugin.getServer().getIp());
 		//initialize rep based on database
 		rep = new HashMap<String, Integer>();
 		points = new HashMap<String, Integer>();
 		times = new HashMap<String, Long>();
-		dbManager = new eGODBManager();
+		dbManager = new eGODBManager(plugin);
 	}
 	
-	private int modCookieForName(String repper, String recipient, int amt)
+	private int modCookieForName(CommandSender sender, String recipient, boolean hasDS, int amt)
 	{
+		int totRepPoints = eGORepConfig.repPerUnit + ((hasDS) ? 2 : 0);
+		String repper = sender.getName();
 		//can't give rep to self
-		//if (repper == recipient)
-		//	return -2;
-		
-		//initialize newval to 1 in case recipient isn't in database
-		int newval = 1;
-		
-		//get recipient's rep if they're in the hashmap
-		if (rep.containsKey(recipient))
-			newval = rep.get(recipient);
-		
-		//repper is not in points and should be added
-		if (!points.containsKey(repper))
-			points.put(repper, 3);
-		
-		//check if player needs new rep
-		if (getSecondsLeft(repper) == 0 && points.get(repper) <= 0)
-			points.put(repper, eGORepConfig.repPerUnit);
-		
-		//apply the reputation modification if repper is not out of points
-		if (points.get(repper) > 0)
-		{
-			newval+=amt;
-			points.put(repper, points.get(repper) - 1);
-			
-			if (points.get(repper) <= 0 && getSecondsLeft(repper) == 0)
-				times.put(repper, unixTimeNow());
-		}
-		//player is out of rep points to use
+		if (repper == recipient)
+			sender.sendMessage(eGORep.chPref + "You may not modify your own reputation");
 		else
-			return -1;
+		{
 		
-		//rep should never be negative
-		if (newval < 0)
-			newval = 0;
-		rep.put(recipient, newval);
+			//initialize newval to 1 in case recipient isn't in database
+			int newval = 1;
+
+			//get recipient's rep if they're in the hashmap
+			if (rep.containsKey(recipient))
+				newval = rep.get(recipient);
+
+			//repper is not in points and should be added
+			if (!points.containsKey(repper))
+				points.put(repper, eGORepConfig.repPerUnit);
+
+			//check if player needs new rep
+			if (getSecondsLeft(repper) == 0 && points.get(repper) <= 0)
+				points.put(repper, totRepPoints);
+
+			//apply the reputation modification if repper is not out of points
+			if (points.get(repper) > 0)
+			{
+				newval+=amt;
+				points.put(repper, points.get(repper) - 1);
+
+				if (points.get(repper) == (totRepPoints - 1) && getSecondsLeft(repper) == 0)
+					times.put(repper, unixTimeNow());
+			}
+			//player is out of rep points to use
+			else
+				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + parseTime(getSecondsLeft(repper)) + " before using /rep again");
+
+			rep.put(recipient, newval);
+		}
 		return rep.get(recipient);
 	}
 	
@@ -97,14 +101,19 @@ public class eGORepCookieManager implements Listener
 		return System.currentTimeMillis() / 1000L;
 	}
 	
-	public int incrCookieForName(String repper, String recipient)
+	public int incrCookieForName(CommandSender sender, String recipient, boolean hasDS)
 	{
-		return modCookieForName(repper, recipient, 1);
+		return modCookieForName(sender, recipient, hasDS, 1);
 	}
 	
-	public int decrCookieForName(String repper, String recipient)
+	public int decrCookieForName(CommandSender sender, String recipient, boolean hasDS)
 	{
-		return modCookieForName(repper, recipient, -1);
+		return modCookieForName(sender, recipient, hasDS, -1);
+	}
+	
+	public void setCookieForName(String name, int val)
+	{
+		rep.put(name, val);
 	}
 	
 	public int getCookieForName(String name)
@@ -134,4 +143,14 @@ public class eGORepCookieManager implements Listener
 		return ans;
 	}
 	
+	private String parseTime(Long timestamp)
+	{
+		String m, s;
+		long min, sec;
+		min = timestamp / 60;
+		sec = timestamp - min * 60;
+		m = (min == 1) ? "min" : "mins";
+		s = (sec == 1) ? "sec" : "secs";
+		return min + " " + m + " " + sec + " " + s;
+	}
 }

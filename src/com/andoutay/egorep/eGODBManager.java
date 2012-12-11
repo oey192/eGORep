@@ -5,13 +5,18 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-//import java.sql.Statement;
+
+import org.bukkit.scheduler.BukkitScheduler;
 
 public class eGODBManager {
 	private String table;
+	private eGORep plugin;
+	private BukkitScheduler scheduler;
 	
-	public eGODBManager()
+	public eGODBManager(eGORep plugin)
 	{
+		this.plugin = plugin;
+		this.scheduler = plugin.getServer().getScheduler();
 		table = "egorep";
 	}
 	
@@ -33,11 +38,33 @@ public class eGODBManager {
 		return null;
 	}
 	
-	public void setAll(String name, int rep, int points, Long timestamp)
+	public void setAll(final String name, final int rep, final int points, final Long timestamp)
 	{
-		setRep(name, rep);
-		setRemPoints(name, points);
-		setTime(name, timestamp);
+		eGORep.log.info("async: " + eGORepConfig.useAsync);
+		if (eGORepConfig.useAsync)
+		{
+			scheduler.runTaskAsynchronously(plugin, new Runnable() {
+				public void run() {
+					setRep(name, rep);
+				}
+			});
+			scheduler.runTaskAsynchronously(plugin, new Runnable() {
+				public void run() {
+					setRemPoints(name, points);
+				}
+			});
+			scheduler.runTaskAsynchronously(plugin, new Runnable() {
+				public void run() {
+					setTime(name, timestamp);
+				}
+			});
+		}
+		else
+		{
+			setRep(name, rep);
+			setRemPoints(name, points);
+			setTime(name, timestamp);
+		}
 	}
 
 	public void setVal(String dbField, String name, long val)

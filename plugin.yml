@@ -44,9 +44,6 @@ permissions:
     egorep.rep.check.others:
         description: "Allows the player to check other players' reputation"
         default: false
-    egorep.rep.set:
-        description: Allows the user to directly set the reputation of a player
-        default: op
     egorep.ds:
         description: Players with this node recieve 2 extra reputation points to use per time unit
         default: false

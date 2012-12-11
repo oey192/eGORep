@@ -17,11 +17,12 @@ public final class eGORep extends JavaPlugin
 	public static Logger log = Logger.getLogger("Minecraft");
 	public static String chPref = ChatColor.GREEN + "[" + ChatColor.RESET + "Rep" + ChatColor.GREEN + "] " + ChatColor.RESET;
 	public static String logPref = "[Rep] ";
-	private eGORepCookieManager cManager = new eGORepCookieManager();
+	private eGORepCookieManager cManager;
 	
 	public void onLoad()
 	{
 		new eGORepConfig(this);
+		cManager = new eGORepCookieManager(this);
 	}
 	
 	@Override
@@ -62,8 +63,12 @@ public final class eGORep extends JavaPlugin
 			return execRep("up", sender, args);
 		else if (isDown(cmd, player, args))
 			return execRep("down", sender, args);
-		else if (isCheck(cmd, player, args))
-			return checkRep(player, args);
+		else if (isCheckSelf(cmd, player, args))
+			return checkRep(sender, args);
+		else if (isCheckOther(cmd, player, args))
+			return checkRep(sender, args);
+		else if (isSetRep(cmd, player, args))
+			return setRep(sender, args);
 		
 		return false;
 	}
@@ -78,15 +83,34 @@ public final class eGORep extends JavaPlugin
 		return ((p != null && p.hasPermission("egorep.rep.down")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("down");
 	}
 	
-	public static boolean isCheck(Command cmd, Player p, String[] args)
+	public static boolean isCheckSelf(Command cmd, Player p, String[] args)
 	{
-		return ((p != null && p.hasPermission("egorep.rep.check")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length >= 1 && args.length <= 2 && args[0].equalsIgnoreCase("check");
+		return ((p != null && p.hasPermission("egorep.rep.check.self")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("check");
+	}
+	
+	public static boolean isCheckOther(Command cmd, Player p, String[] args)
+	{
+		return ((p != null && p.hasPermission("egorep.rep.check.others")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("check");
+	}
+	
+	public static boolean isSetRep(Command cmd, Player p, String[] args)
+	{
+		if (cmd.getName().equalsIgnoreCase("rep") && args.length == 3 && args[0].equalsIgnoreCase("set"))
+			if (p != null)
+			{
+				p.sendMessage(chPref + "Only the console may use that command");
+				return false;
+			}
+			else
+				return true;
+		else
+			return false;
 	}
 	
 	public void tellAllPlayers(Player recipient, String str, int amt)
 	{
 		String msg = ChatColor.GREEN + recipient.getDisplayName() + ChatColor.WHITE + "'s reputation " + str + " to " + amt;
-		String personalMsg = "Your reputation was " + str + " to " + amt;
+		String personalMsg = ChatColor.GREEN + "Your" + ChatColor.RESET + " reputation was " + str + " to " + amt;
 		for(World w : getServer().getWorlds()){
 		    for(Player p : w.getPlayers()){
 		        if(p.hasPermission("egorep.show"))
@@ -100,41 +124,44 @@ public final class eGORep extends JavaPlugin
 	
 	private boolean execRep(String direction, CommandSender sender, String[] args)
 	{
-		int newamt = -1;
+		int newamt = 0, oldamt;
+		boolean hasDS = false;
 		Player recipient = null;
 		
-		//get cookie rep level for args[1], ++ it
+		//Check for Dedicated Supporter
+		if ((sender instanceof Player) && eGORepConfig.useDS && ((Player)sender).hasPermission("egorep.ds"))
+			hasDS = true;
+		
 		recipient = getServer().getPlayer(args[1]);
 		if (recipient == null)
 			return playerNotFound(sender, args[1]);
 		
+		
+		oldamt = cManager.getCookieForName(recipient.getName());
 		if (direction == "up")
 		{
-			newamt = cManager.incrCookieForName(sender.getName(), recipient.getName());
+			newamt = cManager.incrCookieForName(sender, recipient.getName(), hasDS);
 			direction = "increased";
 		}
 		else if (direction == "down")
 		{
-			newamt = cManager.decrCookieForName(sender.getName(), recipient.getName());
+			newamt = cManager.decrCookieForName(sender, recipient.getName(), hasDS);
 			direction = "decreased";
 		}
 		
-		if (newamt >= 0)
+		if (newamt - oldamt != 0)
 		{
 			tellAllPlayers(recipient, direction, newamt);
 			log.info(logPref + sender.getName() + " " + direction + " " + recipient.getName() + "'s reputation to " + newamt);
 			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left to use this hour");
 		}
-		else if (newamt == -1)
-			sender.sendMessage(chPref + "You are out of reputation points to use\nYou must wait " + parseTime(cManager.getSecondsLeft(sender.getName())) + " before using /rep again");
-		else if (newamt == -2)
-			sender.sendMessage(chPref + "You may not modify your own reputation");
 		
 		return true;
 	}
 	
 	private boolean checkRep(CommandSender sender, String[] args)
 	{
+		log.info("len: " + args.length);
 		int rep = 0;
 		String name;
 		Player recipient;
@@ -158,15 +185,18 @@ public final class eGORep extends JavaPlugin
 		return true;
 	}
 	
-	private String parseTime(Long timestamp)
+	private boolean setRep(CommandSender sender, String[] args)
 	{
-		String m, s;
-		long min, sec;
-		min = timestamp / 60;
-		sec = timestamp - min * 60;
-		m = (min == 1) ? "min" : "mins";
-		s = (sec == 1) ? "sec" : "secs";
-		return min + " " + m + " " + sec + " " + s;
+		int repVal = Integer.parseInt(args[2]);
+		Player recipient = getServer().getPlayer(args[1]);
+		if (recipient == null)
+			return playerNotFound(sender, args[1]);
+		
+		cManager.setCookieForName(recipient.getName(), repVal);
+		
+		sender.sendMessage(logPref + "Set reputation of " + recipient.getName() + " to " + repVal);
+		
+		return true;
 	}
 	
 	private boolean playerNotFound(CommandSender sender, String name)

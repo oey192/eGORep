@@ -7,7 +7,7 @@ public class eGORepConfig
 	private static Configuration config;
 	
 	public static int repPerUnit, refreshSecs;
-	public static boolean useDS;	//DS = Dedicated Supporter
+	public static boolean useDS, useAsync;	//DS = Dedicated Supporter
 	public static String sqlURL, sqlHost, sqlPort, sqlDBName, sqlUser, sqlPassword;
 	
 	eGORepConfig(eGORep plugin)
@@ -28,6 +28,7 @@ public class eGORepConfig
 		repPerUnit = config.getInt("repPerUnit");
 		refreshSecs = config.getInt("refreshSecs");
 		useDS = config.getBoolean("useDS");
+		useAsync = config.getBoolean("useAsync");
 		sqlHost = config.getString("mysql.host");
 		sqlPort = config.getString("mysql.port");
 		sqlDBName = config.getString("mysql.dbName");
