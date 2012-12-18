@@ -8,7 +8,7 @@ public class eGORepConfig
 	
 	public static int repPerUnit, refreshSecs;
 	public static boolean useDS, useAsync;	//DS = Dedicated Supporter
-	public static String sqlURL, sqlHost, sqlPort, sqlDBName, sqlUser, sqlPassword;
+	public static String sqlURL, shortSQLURL, sqlHost, sqlPort, sqlDBName, sqlTableName, sqlUser, sqlPassword;
 	
 	eGORepConfig(eGORep plugin)
 	{
@@ -32,8 +32,10 @@ public class eGORepConfig
 		sqlHost = config.getString("mysql.host");
 		sqlPort = config.getString("mysql.port");
 		sqlDBName = config.getString("mysql.dbName");
+		sqlTableName = config.getString("mysql.table");
 		sqlUser = config.getString("mysql.user");
 		sqlPassword = config.getString("mysql.password");
 		sqlURL = "jdbc:mysql://" + sqlHost + ":" + sqlPort + "/" + sqlDBName;
+		shortSQLURL = "jdbc:mysql://" + sqlHost + ":" + sqlPort;
 	}
 }
