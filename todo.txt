@@ -1,8 +1,6 @@
 
 Add DB error handling
 if table doesn't exist, create table
-if database doesn't exist, create database??
-
-post-initial-release: add ability to change rep of offline version
+There are some really weird errors happening with this… :(
 
 //I don't do permissions the same way Cyp does them - do I need to fix that?
