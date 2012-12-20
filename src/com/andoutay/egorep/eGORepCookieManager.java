@@ -18,7 +18,6 @@ public class eGORepCookieManager implements Listener
 	
 	public eGORepCookieManager(eGORep plugin)
 	{
-		//eGORep.log.info("thingy: " + plugin.getServer().getIp());
 		//initialize rep based on database
 		rep = new HashMap<String, Integer>();
 		points = new HashMap<String, Integer>();
@@ -35,7 +34,6 @@ public class eGORepCookieManager implements Listener
 			sender.sendMessage(eGORep.chPref + "You may not modify your own reputation");
 		else
 		{
-		
 			//initialize newval to 1 in case recipient isn't in database
 			int newval = 1;
 
@@ -62,7 +60,7 @@ public class eGORepCookieManager implements Listener
 			}
 			//player is out of rep points to use
 			else
-				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + eGORep.parseTime(getSecondsLeft(repper)) + " before using /rep again");
+				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + eGORep.parseTime(getSecondsLeft(repper)) + " before using /rep up or down again");
 
 			rep.put(recipient, newval);
 		}

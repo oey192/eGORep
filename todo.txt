@@ -1,6 +1,3 @@
-
-Add DB error handling
-if table doesn't exist, create table
-There are some really weird errors happening with this… :(
+Add ability for users to check the reputation of offline players
 
 //I don't do permissions the same way Cyp does them - do I need to fix that?

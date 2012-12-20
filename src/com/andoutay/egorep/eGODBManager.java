@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
-import java.sql.Statement;
 
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -98,7 +97,7 @@ public class eGODBManager
 		}
 		catch (SQLException e)
 		{
-			//e.printStackTrace();
+			
 		}
 		
 		if (success < 1)
@@ -154,13 +153,11 @@ public class eGODBManager
 		}
 		catch (SQLException e)
 		{
-			//e.printStackTrace();
+			
 		}
 		
 		if (success < 1)
-		{
 			fixFringeCases(con, name, dbField);
-		}
 		
 		return ans;
 	}
@@ -232,7 +229,6 @@ public class eGODBManager
 		{
 
 			PreparedStatement stmt = null;
-			Statement statement = null;
 			int success = 0, i, j;
 			String q;
 			int insVal = 0;
@@ -269,46 +265,40 @@ public class eGODBManager
 					{
 						success = 0;
 						eGORep.log.info(eGORep.logPref + "Attempting to create table " + eGORepConfig.sqlTableName);
-						//q = "USE " + eGORepConfig.sqlDBName + "; CREATE TABLE IF NOT EXISTS `" + eGORepConfig.sqlTableName + "` (`IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL, `rep` int(11) NOT NULL DEFAULT '0', `points` int(11) NOT NULL DEFAULT '3', `time` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`IGN`)) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
-						//q = "USE " + eGORepConfig.sqlDBName + "; CREATE TABLE " + eGORepConfig.sqlTableName + " (IGN varchar(128) PRIMARY KEY COLLATE utf8_unicode_ci NOT NULL, rep int NOT NULL DEFAULT '0', points int NOT NULL DEFAULT '3', time bigint NOT NULL DEFAULT '0') ;";
-						q = "USE " + eGORepConfig.sqlTableName + "; CREATE TABLE `egorep` (`IGN` VARCHAR(128), `rep` INT, `points` INT, `time` BIGINT);";
-						eGORep.log.info("Query: " + q);
+						q = "CREATE TABLE IF NOT EXISTS `" + eGORepConfig.sqlTableName + "` (`IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL, `rep` int(11) NOT NULL DEFAULT '0', `points` int(11) NOT NULL DEFAULT '3', `time` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`IGN`)) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
 						try
 						{
-							statement = con.createStatement();
-							statement.executeQuery(q);
-
-							//success = stmt.executeUpdate();
-							//stmt.close();
-							statement.close();
+							stmt = con.prepareStatement(q); 
+							success = stmt.executeUpdate();
+							stmt.close();
+							
 							eGORep.log.info("Created table " + eGORepConfig.sqlTableName);
 							
 							//break out of loop -- we're done
 							j = 2;
-							success = 1;
 						}
 						catch (SQLException e)
 						{
-							eGORep.log.warning(eGORep.logPref + "Could not create table " + eGORepConfig.sqlTableName);
-							e.printStackTrace();
+							eGORep.log.warning(eGORep.logPref + "Could not create table " + eGORepConfig.sqlTableName + ".");
 						}
 						
 						if (success < 1 && j < 1)
 						{
 							success = 0;
 							eGORep.log.info(eGORep.logPref + "Attempting to create database " + eGORepConfig.sqlDBName);
-							q = "CREATE DATABASE IF NOT EXISTS  `" + eGORepConfig.sqlDBName + "` ;";// GRANT ALL PRIVILEGES ON  `" + eGORepConfig.sqlDBName + "` . * TO  '" + eGORepConfig.sqlUser + "'@'" + eGORepConfig.sqlHost + "';";
+							q = "CREATE DATABASE IF NOT EXISTS  `" + eGORepConfig.sqlDBName + "` ;";
 							
 							try
 							{
 								stmt = con.prepareStatement(q);
-								//stmt.setString(1, );
-								//stmt.setString(2, );
 								
 								success = stmt.executeUpdate();
 								stmt.close();
 								
 								eGORep.log.info(eGORep.logPref + "Created database " + eGORepConfig.sqlDBName);
+								
+								//re-get the connection so it will have the database this time
+								con = getSQLConnection();
 							}
 							catch (SQLException e)
 							{
