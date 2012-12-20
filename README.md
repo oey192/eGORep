@@ -8,8 +8,10 @@ A minecraft plugin for eGO that adds reputation for players
 Commands:
 ===
 
-/rep up <username>: increase the reputation of username by 1
-/rep down <username>: decrease the reputation of username by 1
+/rep up \<username\>: increase the reputation of username by 1
+
+/rep down \<username\>: decrease the reputation of username by 1
+
 /rep check [username]: check the reputation of yourself or username
 
 
