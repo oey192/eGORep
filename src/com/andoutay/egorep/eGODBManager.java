@@ -53,7 +53,8 @@ public class eGODBManager
 	
 	public void setAll(final String name, final int rep, final int points, final Long timestamp)
 	{
-		if (eGORepConfig.useAsync)
+		/*eGORep.log.info("About to start async tasks");
+		if (eGORepConfig.useAsync && !stopping)
 		{
 			scheduler.runTaskAsynchronously(plugin, new Runnable() {
 				public void run() {
@@ -73,10 +74,11 @@ public class eGODBManager
 		}
 		else
 		{
+			eGORep.log.info("Running in main thread");*/
 			setRep(name, rep);
 			setRemPoints(name, points);
 			setTime(name, timestamp);
-		}
+		//}
 	}
 
 	public void setVal(String dbField, String name, long val)
@@ -204,23 +206,24 @@ public class eGODBManager
 			setVal("time", name, timestamp);
 	}
 
-	public int getRep(String name) {
+	public int getRep(final String name)
+	{
 		return getInt("rep", name);
 	}
 
-	public int getRemPoints(String name) {
+	public int getRemPoints(String name)
+	{
 		return getInt("points", name);
 	}
 
-	public Long getTime(String name) {
-		// TODO get timestamp from db and return it
+	public Long getTime(String name)
+	{
 		return getLong("time", name);
 	}
 	
 	
 	private void fixFringeCases(Connection con, String name, String dbField)
 	{
-		//eGORep.log.info("I'm really confused: " + table);
 		if (eGORepConfig.sqlDBName.equalsIgnoreCase(""))
 			eGORep.log.severe(eGORep.logPref + "Database name is blank! Edit config.yml to include a database name");
 		else if (eGORepConfig.sqlTableName.equalsIgnoreCase(""))
@@ -323,18 +326,7 @@ public class eGODBManager
 }
 
 /*
- * user: mcPluginTest 
- * pass: 29cXaC4YuZFb4yLa
- * 
  * Code to create table if necessary
-
-CREATE TABLE  `mcPluginTest`.`egorep` (
-`IGN` VARCHAR( 128 ) NOT NULL ,
-`rep` INT NOT NULL ,
-`points` INT NOT NULL ,
-`time` BIGINT NOT NULL ,
-PRIMARY KEY (  `IGN` )
-) ENGINE = MYISAM ;
 
 CREATE TABLE IF NOT EXISTS `egorep` (
   `IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL,

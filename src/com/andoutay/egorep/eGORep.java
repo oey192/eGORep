@@ -3,9 +3,9 @@ package com.andoutay.egorep;
 import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -46,8 +46,13 @@ public final class eGORep extends JavaPlugin
 	@Override
 	public void onDisable()
 	{
+		//stop the syncing from the database from executing in new threads since we need to assure it finishes before the server stops
+		eGORepConfig.useAsync = false;
 		for (Player p: getServer().getOnlinePlayers())
+		{
+			log.info(p.getName() + " is still here");
 			cManager.saveAndUnLoadPlayer(p.getName());
+		}
 		
 		getServer().getScheduler().cancelTasks(this);
 		log.info(logPref + "disabled");
@@ -56,49 +61,43 @@ public final class eGORep extends JavaPlugin
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args)
 	{
 		Player player = null;
-		if (sender instanceof Player)
-			player = (Player)sender;
+
 		
 		if (isUp(cmd, player, args))
 			return execRep("up", sender, args);
 		else if (isDown(cmd, player, args))
 			return execRep("down", sender, args);
-		else if (isCheckSelf(cmd, player, args))
-			return checkRep(sender, args);
-		else if (isCheckOther(cmd, player, args))
-			return checkRep(sender, args);
-		else if (isSetRep(cmd, player, args))
+		else if (isSetRep(cmd, sender, args))
 			return setRep(sender, args);
+		else if (isHelp(cmd.getName(), args))
+			return help(sender);
+		else if (isCheck(cmd, player, args))
+			return checkRep(sender, args);
 		
 		return false;
 	}
 	
 	private static boolean isUp(Command cmd, Player p, String[] args)
 	{
-		return ((p != null && p.hasPermission("egorep.rep.up")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("up");
+		return cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("up");
 	}
 	
 	private static boolean isDown(Command cmd, Player p, String[] args)
 	{
-		return ((p != null && p.hasPermission("egorep.rep.down")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("down");
+		return cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("down");
 	}
 	
-	public static boolean isCheckSelf(Command cmd, Player p, String[] args)
+	public static boolean isCheck(Command cmd, Player p, String[] args)
 	{
-		return ((p != null && p.hasPermission("egorep.rep.check.self")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("check");
+		return cmd.getName().equalsIgnoreCase("rep") && ((args.length >= 0 && args.length <= 1) || (args.length >= 1 && args.length <= 2 && args[0].equalsIgnoreCase("check")));
 	}
 	
-	public static boolean isCheckOther(Command cmd, Player p, String[] args)
-	{
-		return ((p != null && p.hasPermission("egorep.rep.check.others")) || p == null) && cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("check");
-	}
-	
-	public static boolean isSetRep(Command cmd, Player p, String[] args)
+	public static boolean isSetRep(Command cmd, CommandSender s, String[] args)
 	{
 		if (cmd.getName().equalsIgnoreCase("rep") && args.length == 3 && args[0].equalsIgnoreCase("set"))
-			if (p != null)
+			if (!(s instanceof ConsoleCommandSender))
 			{
-				p.sendMessage(chPref + "Only the console may use that command");
+				s.sendMessage(chPref + "Only the console may use that command");
 				return false;
 			}
 			else
@@ -107,30 +106,39 @@ public final class eGORep extends JavaPlugin
 			return false;
 	}
 	
+	public static boolean isHelp(String name, String[] args)
+	{
+		return name.equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("help");
+	}
+	
 	public void tellAllPlayers(Player recipient, String str, int amt)
 	{
 		String msg = ChatColor.GREEN + recipient.getDisplayName() + ChatColor.WHITE + "'s reputation " + str + " to " + amt;
 		String personalMsg = ChatColor.GREEN + "Your" + ChatColor.RESET + " reputation was " + str + " to " + amt;
-		for(World w : getServer().getWorlds()){
-		    for(Player p : w.getPlayers()){
-		        if(p.hasPermission("egorep.show"))
-		        	if (p.getName().equalsIgnoreCase(recipient.getName()))
-		        		p.sendMessage(personalMsg);
-		        	else
-		        		p.sendMessage(msg);
-		    }
-		}
+		for(Player p : getServer().getOnlinePlayers())
+			if(p.hasPermission("egorep.show"))
+				if (p.getName().equalsIgnoreCase(recipient.getName()))
+					p.sendMessage(personalMsg);
+				else
+					p.sendMessage(msg);
 	}
-	
+
 	private boolean execRep(String direction, CommandSender sender, String[] args)
 	{
 		int newamt = 0, oldamt;
 		boolean hasDS = false;
-		Player recipient = null;
+		Player player = null, recipient = null;
+		if (sender instanceof Player)
+			player = (Player)sender;
 		
-		//Check for Dedicated Supporter
-		if ((sender instanceof Player) && eGORepConfig.useDS && ((Player)sender).hasPermission("egorep.ds"))
-			hasDS = true;
+		if (player != null)
+		{
+			if (!player.hasPermission("egorep.rep." + direction))
+				return noAccess(player);
+			
+			if (player.hasPermission("egorep.ds"))
+				hasDS = true;
+		}
 		
 		recipient = getServer().getPlayer(args[1]);
 		if (recipient == null)
@@ -161,16 +169,33 @@ public final class eGORep extends JavaPlugin
 	
 	private boolean checkRep(CommandSender sender, String[] args)
 	{
+		Player player = null;
+		if (sender instanceof Player)
+			player = (Player)sender;
+		
 		int rep = 0;
 		String name;
 		Player recipient;
-		if (args.length == 1)
-			name = sender.getName();
-		else if (args.length == 2)
+		if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("check")))
 		{
-			recipient = getServer().getPlayer(args[1]);
+			if (player != null && !player.hasPermission("egorep.rep.check.self"))
+				return noAccess(player);
+			name = sender.getName();
+		}
+		else if (args.length == 1 || (args.length == 2 && args[0].equalsIgnoreCase("check")))
+		{
+			String recipName = null;
+			if (player != null && !player.hasPermission("egorep.rep.check.others"))
+				return noAccess(player);
+			
+			if (args.length == 1)
+				recipName = args[0];
+			else
+				recipName = args[1];
+			
+			recipient = getServer().getPlayer(recipName);
 			if (recipient == null)
-				return playerNotFound(sender, args[1]);
+				return playerNotFound(sender, recipName);
 			name = recipient.getName();
 		}
 		else
@@ -198,9 +223,26 @@ public final class eGORep extends JavaPlugin
 		return true;
 	}
 	
+	private boolean help(CommandSender s)
+	{
+		s.sendMessage(chPref + "Help:");
+		s.sendMessage("Use /rep up <username> and /rep down <username> to give and take other players' reputation");
+		s.sendMessage("Use /rep <username> or /rep check <username> to check the reputation of other players");
+		s.sendMessage("Use /rep or /rep check to check your own reputation");
+		s.sendMessage("Remeber that Dedicated Supporters get two extra rep points to use every " + parseTime((long)eGORepConfig.refreshSecs));
+		
+		return true;
+	}
+	
 	private boolean playerNotFound(CommandSender sender, String name)
 	{
 		sender.sendMessage(chPref + "Player matching " + name + " not found");
+		return true;
+	}
+	
+	private boolean noAccess(Player player)
+	{
+		player.sendMessage(ChatColor.RED + "You do not have access to that command");
 		return true;
 	}
 	

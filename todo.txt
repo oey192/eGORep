@@ -1,8 +1,4 @@
 Add ability for users to check the reputation of offline players
 
-Give player proper warning if they don't have permission
-make /rep <playername> an alias for /rep check <playername>
-
-fix DS
 
 //I don't do permissions the same way Cyp does them - do I need to fix that?

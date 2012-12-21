@@ -7,5 +7,4 @@ mysql:
     password: ''
 repPerUnit: 3
 refreshSecs: 3600
-useDS: false
 useAsync: true
