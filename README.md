@@ -14,6 +14,10 @@ Commands:
 
 /rep check [username]: check the reputation of yourself or username
 
+/rep help: show the help for the plugin
+
+/rep set \<username\> \<value\>: sets the reputation of username to value. Only available to console
+
 
 Permissions:
 ===
