@@ -53,32 +53,9 @@ public class eGODBManager
 	
 	public void setAll(final String name, final int rep, final int points, final Long timestamp)
 	{
-		/*eGORep.log.info("About to start async tasks");
-		if (eGORepConfig.useAsync && !stopping)
-		{
-			scheduler.runTaskAsynchronously(plugin, new Runnable() {
-				public void run() {
-					setRep(name, rep);
-				}
-			});
-			scheduler.runTaskAsynchronously(plugin, new Runnable() {
-				public void run() {
-					setRemPoints(name, points);
-				}
-			});
-			scheduler.runTaskAsynchronously(plugin, new Runnable() {
-				public void run() {
-					setTime(name, timestamp);
-				}
-			});
-		}
-		else
-		{
-			eGORep.log.info("Running in main thread");*/
 			setRep(name, rep);
 			setRemPoints(name, points);
 			setTime(name, timestamp);
-		//}
 	}
 
 	public void setVal(String dbField, String name, long val)
@@ -128,7 +105,7 @@ public class eGODBManager
 		}
 		catch (SQLException e)
 		{
-			e.printStackTrace();
+			
 		}
 		
 		return ans;
@@ -241,7 +218,6 @@ public class eGODBManager
 			for (i = 0; i < 2; i++)
 			{
 				success = 0;
-				eGORep.log.info(eGORep.logPref + "Attempting to add " + name + " to the database");
 				q = "INSERT INTO " + eGORepConfig.sqlTableName + " (`IGN`, `" + dbField + "`) VALUES (?, ?)";
 				try
 				{
@@ -251,8 +227,6 @@ public class eGODBManager
 
 					success = stmt.executeUpdate();
 					stmt.close();
-					
-					eGORep.log.info(eGORep.logPref + "Added " + name + " to the database");
 					
 					//break out of loop - we're done
 					i = 2;
