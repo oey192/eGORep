@@ -7,6 +7,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -71,6 +72,8 @@ public final class eGORep extends JavaPlugin
 			return setRep(sender, args);
 		else if (isHelp(cmd.getName(), args))
 			return help(sender);
+		else if (isVersion(cmd.getName(), args))
+			return version(sender);
 		else if (isCheck(cmd, player, args))
 			return checkRep(sender, args);
 		
@@ -87,12 +90,12 @@ public final class eGORep extends JavaPlugin
 		return cmd.getName().equalsIgnoreCase("rep") && args.length == 2 && args[0].equalsIgnoreCase("down");
 	}
 	
-	public static boolean isCheck(Command cmd, Player p, String[] args)
+	private static boolean isCheck(Command cmd, Player p, String[] args)
 	{
-		return cmd.getName().equalsIgnoreCase("rep") && ((args.length >= 0 && args.length <= 1) || (args.length >= 1 && args.length <= 2 && args[0].equalsIgnoreCase("check")));
+		return cmd.getName().equalsIgnoreCase("rep") && (args.length == 0 || (args.length == 1 && !args[0].equalsIgnoreCase("up") && !args[0].equalsIgnoreCase("down") && !args[0].equalsIgnoreCase("help") && !args[0].equalsIgnoreCase("?") && !args[0].equalsIgnoreCase("set")) || (args.length >= 1 && args.length <= 2 && args[0].equalsIgnoreCase("check")));
 	}
 	
-	public static boolean isSetRep(Command cmd, CommandSender s, String[] args)
+	private static boolean isSetRep(Command cmd, CommandSender s, String[] args)
 	{
 		if (cmd.getName().equalsIgnoreCase("rep") && args.length == 3 && args[0].equalsIgnoreCase("set"))
 			if (!(s instanceof ConsoleCommandSender))
@@ -106,9 +109,14 @@ public final class eGORep extends JavaPlugin
 			return false;
 	}
 	
-	public static boolean isHelp(String name, String[] args)
+	private static boolean isHelp(String name, String[] args)
 	{
-		return name.equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("help");
+		return name.equalsIgnoreCase("rep") && args.length == 1 && (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?"));
+	}
+	
+	private static boolean isVersion(String name, String[] args)
+	{
+		return name.equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("version");
 	}
 	
 	public void tellAllPlayers(Player recipient, String str, int amt)
@@ -140,7 +148,7 @@ public final class eGORep extends JavaPlugin
 				hasDS = true;
 		}
 		
-		recipient = getServer().getPlayer(args[1]);
+		recipient = getPlayerForName(args[1]);
 		if (recipient == null)
 			return playerNotFound(sender, args[1]);
 		
@@ -169,13 +177,13 @@ public final class eGORep extends JavaPlugin
 	
 	private boolean checkRep(CommandSender sender, String[] args)
 	{
-		Player player = null;
+		Player player = null, other = null;
+		boolean offlinePlayer = false;
 		if (sender instanceof Player)
 			player = (Player)sender;
 		
-		int rep = 0;
 		String name;
-		Player recipient;
+		int rep = 0;
 		if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("check")))
 		{
 			if (player != null && !player.hasPermission("egorep.rep.check.self"))
@@ -193,26 +201,36 @@ public final class eGORep extends JavaPlugin
 			else
 				recipName = args[1];
 			
-			recipient = getServer().getPlayer(recipName);
-			if (recipient == null)
-				return playerNotFound(sender, recipName);
-			name = recipient.getName();
+			other = getPlayerForName(recipName);
+			if (other == null)
+			{
+				//If a player with the name of recipName has not been on the server, they will have a lastPlayed time of 0
+				if (getServer().getOfflinePlayer(recipName).getLastPlayed() > 0)
+				{
+					name = getServer().getOfflinePlayer(recipName).getName();
+					offlinePlayer = true;
+				}
+				else
+					return playerNotFound(sender, recipName);
+			}
+			else
+				name = other.getName();
 		}
 		else
 			return false;
 		
-		rep = cManager.getCookieForName(name);
+		rep = (offlinePlayer) ? cManager.dbManager.getRep(name) : cManager.getCookieForName(name);
 		if (sender.getName().equalsIgnoreCase(name))
 			sender.sendMessage(chPref + "You have a reputation of " + rep);
 		else
-			sender.sendMessage(chPref + name + " has a reputation of " + rep);
+			sender.sendMessage(chPref + ((other == null) ? name : other.getDisplayName()) + " has a reputation of " + rep);
 		return true;
 	}
 	
 	private boolean setRep(CommandSender sender, String[] args)
 	{
 		int repVal = Integer.parseInt(args[2]);
-		Player recipient = getServer().getPlayer(args[1]);
+		Player recipient = getPlayerForName(args[1]);
 		if (recipient == null)
 			return playerNotFound(sender, args[1]);
 		
@@ -229,8 +247,24 @@ public final class eGORep extends JavaPlugin
 		s.sendMessage("Use /rep up <username> and /rep down <username> to give and take other players' reputation");
 		s.sendMessage("Use /rep <username> or /rep check <username> to check the reputation of other players");
 		s.sendMessage("Use /rep or /rep check to check your own reputation");
-		s.sendMessage("Remeber that Dedicated Supporters get two extra rep points to use every " + parseTime((long)eGORepConfig.refreshSecs));
+		s.sendMessage("Remember that Dedicated Supporters get two extra rep points to use every " + parseTime((long)eGORepConfig.refreshSecs));
 		
+		return true;
+	}
+	
+	private boolean version(CommandSender s)
+	{
+		PluginDescriptionFile pdf = getDescription();
+		String pref = null;
+		if ((s instanceof Player) && ((Player)s).hasPermission("egorep.version"))
+			pref = chPref;
+		else if (s instanceof ConsoleCommandSender)
+			pref = logPref;
+		
+		if (pref != null)
+			s.sendMessage(pref + "Current version: " + pdf.getVersion());
+		else
+			return noAccess(s);
 		return true;
 	}
 	
@@ -244,6 +278,40 @@ public final class eGORep extends JavaPlugin
 	{
 		player.sendMessage(ChatColor.RED + "You do not have access to that command");
 		return true;
+	}
+	
+	private boolean noAccess(CommandSender s)
+	{
+		if (s instanceof Player)
+			return noAccess((Player)s);
+		s.sendMessage("You do not have access to that command");
+		return true;
+	}
+	
+	private Player getPlayerForName(String partial)
+	{
+		Player player = null;
+		boolean found = false, foundMult = false;
+		
+		player = getServer().getPlayer(partial);
+		
+		if (player == null)
+			for (Player p: getServer().getOnlinePlayers())
+				if (p.getDisplayName().contains(partial))
+				{
+					if (found)
+					{
+						foundMult = true;
+						break;
+					}
+					player = p;
+					found = true;
+				}
+		
+		if (foundMult)
+			player = null;
+		
+		return player;
 	}
 	
 	public static String parseTime(Long timestamp)

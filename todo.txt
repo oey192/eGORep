@@ -1,10 +1,7 @@
 Add ability for users to check the reputation of offline players
 
-Change condition for isCheck to ... args.length == 0 || (args.length == 1 && !args[0].equalsIgnoreCase("up") && !args[0].equalsIgnoreCase("down") && "help" && "set") ...
-
 Add ability for player to see when their own reputation changes but not when others' do.
 
 Catch exceptions that are thrown when database server is not online / when Connection con == null
 
-
-//I don't do permissions the same way Cyp does them - do I need to fix that?
+Figure out why /rep [playerName] isn't working as an alias for /rep check [playerName]

@@ -14,7 +14,7 @@ public class eGORepCookieManager implements Listener
 	private HashMap<String, Integer> rep;
 	private HashMap<String, Integer> points;
 	private HashMap<String, Long> times;
-	private eGODBManager dbManager;
+	public eGODBManager dbManager;
 	
 	public eGORepCookieManager(eGORep plugin)
 	{
