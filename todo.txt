@@ -1,9 +1,3 @@
-Add ability for users to check the reputation of offline players
-
 Add ability for player to see when their own reputation changes but not when others' do.
-
-Catch exceptions that are thrown when database server is not online / when Connection con == null
-
-Fix asyncronosity of getting reputation when /rep check is used
 
 Figure out why /rep [playerName] isn't working as an alias for /rep check [playerName]

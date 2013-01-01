@@ -1,5 +1,8 @@
 package com.andoutay.egorep;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
@@ -150,7 +153,7 @@ public final class eGORep extends JavaPlugin
 		
 		recipient = getPlayerForName(args[1]);
 		if (recipient == null)
-			return playerNotFound(sender, args[1]);
+			return playerNotFound(sender, args[1], true);
 		
 		
 		oldamt = cManager.getCookieForName(recipient.getName());
@@ -175,14 +178,14 @@ public final class eGORep extends JavaPlugin
 		return true;
 	}
 	
-	private boolean checkRep(CommandSender sender, String[] args)
+	private boolean checkRep(final CommandSender sender, String[] args)
 	{
 		Player player = null, other = null;
 		boolean offlinePlayer = false;
 		if (sender instanceof Player)
 			player = (Player)sender;
 		
-		String name;
+		final String name;
 		int rep = 0;
 		if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("check")))
 		{
@@ -211,7 +214,7 @@ public final class eGORep extends JavaPlugin
 					offlinePlayer = true;
 				}
 				else
-					return playerNotFound(sender, recipName);
+					return playerNotFound(sender, recipName, false);
 			}
 			else
 				name = other.getName();
@@ -219,11 +222,44 @@ public final class eGORep extends JavaPlugin
 		else
 			return false;
 		
-		rep = (offlinePlayer) ? cManager.dbManager.getRep(name) : cManager.getCookieForName(name);
-		if (sender.getName().equalsIgnoreCase(name))
-			sender.sendMessage(chPref + "You have a reputation of " + rep);
+		if (offlinePlayer && eGORepConfig.useAsync)
+		{
+			log.info("weeeee");
+			final Player o = other;
+			sender.sendMessage(ChatColor.GRAY + "Fetching reputation from database...");
+			final Future<Integer> returnFuture = getServer().getScheduler().callSyncMethod(this, new Callable<Integer>() {
+				@Override
+				public Integer call()
+				{
+					return cManager.dbManager.getRep(name);					
+				}
+			});
+			
+			getServer().getScheduler().runTaskAsynchronously(this, new Runnable() {
+				@Override
+				public void run()
+				{
+					try
+					{
+						tellRep(sender, returnFuture.get(), name, o);
+					}
+					catch (InterruptedException e)
+					{
+						sender.sendMessage(chPref+ "DB connection interrupted. Unable to get reputation.");
+					}
+					catch (ExecutionException e)
+					{
+						sender.sendMessage(chPref + "Unable to get reputation");
+					}
+				}
+			});
+			return true;
+		}
+		else if (offlinePlayer)
+			rep = cManager.dbManager.getRep(name);
 		else
-			sender.sendMessage(chPref + ((other == null) ? name : other.getDisplayName()) + " has a reputation of " + rep);
+			rep = cManager.getCookieForName(name);
+		tellRep(sender, rep, name, other);
 		return true;
 	}
 	
@@ -232,7 +268,7 @@ public final class eGORep extends JavaPlugin
 		int repVal = Integer.parseInt(args[2]);
 		Player recipient = getPlayerForName(args[1]);
 		if (recipient == null)
-			return playerNotFound(sender, args[1]);
+			return playerNotFound(sender, args[1], true);
 		
 		cManager.setCookieForName(recipient.getName(), repVal);
 		
@@ -268,9 +304,9 @@ public final class eGORep extends JavaPlugin
 		return true;
 	}
 	
-	private boolean playerNotFound(CommandSender sender, String name)
+	private boolean playerNotFound(CommandSender sender, String name, boolean online)
 	{
-		sender.sendMessage(chPref + "Player matching " + name + " not found");
+		sender.sendMessage(chPref + "Player matching " + name + " not found" + (online ? " online" : ""));
 		return true;
 	}
 	
@@ -312,6 +348,14 @@ public final class eGORep extends JavaPlugin
 			player = null;
 		
 		return player;
+	}
+	
+	public void tellRep(CommandSender sender, int rep, String name, Player other)
+	{
+		if (sender.getName().equalsIgnoreCase(name))
+			sender.sendMessage(chPref + "You have a reputation of " + rep);
+		else
+			sender.sendMessage(chPref + ((other == null) ? name : other.getDisplayName()) + " has a reputation of " + rep);
 	}
 	
 	public static String parseTime(Long timestamp)

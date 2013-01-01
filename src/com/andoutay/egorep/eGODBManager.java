@@ -45,7 +45,7 @@ public class eGODBManager
 		}
 		catch (SQLException e)
 		{
-			e.printStackTrace();
+			
 		}
 		
 		return null;
@@ -78,6 +78,11 @@ public class eGODBManager
 		{
 			
 		}
+		catch (NullPointerException e)
+		{
+			if (dbField.equalsIgnoreCase("rep")) eGORep.log.severe(eGORep.logPref + "Could not connect to database. Please check that the MySQL Server is running");
+			success = 1;
+		}
 		
 		if (success < 1)
 		{
@@ -107,6 +112,10 @@ public class eGODBManager
 		{
 			
 		}
+		catch (NullPointerException e)
+		{
+			
+		}
 		
 		return ans;
 	}
@@ -133,6 +142,11 @@ public class eGODBManager
 		catch (SQLException e)
 		{
 			
+		}
+		catch (NullPointerException e)
+		{
+			if (dbField.equalsIgnoreCase("rep")) eGORep.log.severe(eGORep.logPref + "Could not connect to database. Please check that the MySQL Server is running");
+			success = 1;
 		}
 		
 		if (success < 1)
@@ -207,7 +221,6 @@ public class eGODBManager
 			eGORep.log.severe(eGORep.logPref + "Table name is blank! Edit config.yml to include a table name");
 		else
 		{
-
 			PreparedStatement stmt = null;
 			int success = 0, i, j;
 			String q;
