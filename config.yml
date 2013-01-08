@@ -3,6 +3,7 @@ mysql:
     port: '3306'
     dbName: ''
     table: egorep
+    logTable: replog
     user: ''
     password: ''
 repPerUnit: 3

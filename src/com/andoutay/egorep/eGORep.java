@@ -77,6 +77,8 @@ public final class eGORep extends JavaPlugin
 			return help(sender);
 		else if (isVersion(cmd.getName(), args))
 			return version(sender);
+		else if (isLog(cmd.getName(), args))
+			return showLog(sender, args);
 		else if (isCheck(cmd, player, args))
 			return checkRep(sender, args);
 		
@@ -122,8 +124,14 @@ public final class eGORep extends JavaPlugin
 		return name.equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("version");
 	}
 	
+	private static boolean isLog(String name, String[] args)
+	{
+		return name.equalsIgnoreCase("rep") && (args.length == 1 || args.length == 2) && args[0].equalsIgnoreCase("log");
+	}
+	
 	public void tellAllPlayers(Player recipient, String str, int amt)
 	{
+		str = (str == "up") ? "increased" : "decreased";
 		String msg = ChatColor.GREEN + recipient.getDisplayName() + ChatColor.WHITE + "'s reputation " + str + " to " + amt;
 		String personalMsg = ChatColor.GREEN + "Your" + ChatColor.RESET + " reputation was " + str + " to " + amt;
 		for(Player p : getServer().getOnlinePlayers())
@@ -158,21 +166,16 @@ public final class eGORep extends JavaPlugin
 		
 		oldamt = cManager.getCookieForName(recipient.getName());
 		if (direction == "up")
-		{
 			newamt = cManager.incrCookieForName(sender, recipient.getName(), hasDS);
-			direction = "increased";
-		}
 		else if (direction == "down")
-		{
 			newamt = cManager.decrCookieForName(sender, recipient.getName(), hasDS);
-			direction = "decreased";
-		}
 		
 		if (newamt - oldamt != 0)
 		{
 			tellAllPlayers(recipient, direction, newamt);
-			log.info(logPref + sender.getName() + " " + direction + " " + recipient.getName() + "'s reputation to " + newamt);
+			log.info(logPref + sender.getName() + (direction == "up" ? " increased " : " decreased ") + recipient.getName() + "'s reputation to " + newamt);
 			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left");
+			eGODBManager.addLogEntry(sender.getName(), recipient.getName(), 1, direction);
 		}
 		
 		return true;
@@ -273,6 +276,7 @@ public final class eGORep extends JavaPlugin
 		cManager.setCookieForName(recipient.getName(), repVal);
 		
 		sender.sendMessage(logPref + "Set reputation of " + recipient.getName() + " to " + repVal);
+		eGODBManager.addLogEntry("CONSOLE", recipient.getName(), repVal, "set");
 		
 		return true;
 	}
@@ -301,6 +305,38 @@ public final class eGORep extends JavaPlugin
 			s.sendMessage(pref + "Current version: " + pdf.getVersion());
 		else
 			return noAccess(s);
+		return true;
+	}
+	
+	private boolean showLog(CommandSender s, String[] args)
+	{
+		String msg = "";
+		int startIndex = 0, totLogs = eGODBManager.logCount();
+		if (args.length == 2)
+		{
+			try
+			{
+				startIndex = Integer.parseInt(args[1]);
+				startIndex = (startIndex - 1) * 10;
+			}
+			catch (NumberFormatException e)
+			{
+				if (args[1].equalsIgnoreCase("last"))
+					startIndex = totLogs;
+				else
+				{
+					s.sendMessage(chPref + ChatColor.RED + "Invalid argument");
+					return false;
+				}
+			}
+		}
+		
+		if (startIndex > totLogs) startIndex = totLogs - (totLogs % 10);
+		
+		msg = eGODBManager.getLogEntry(null, null, startIndex);
+		s.sendMessage(chPref + "Log page " + (startIndex / 10 + 1) + " of " + (totLogs / 10 + ((totLogs % 10 == 0) ? 0 : 1)));
+		s.sendMessage(msg);
+		
 		return true;
 	}
 	

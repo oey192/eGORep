@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 
+import org.bukkit.ChatColor;
 import org.bukkit.scheduler.BukkitScheduler;
 
 public class eGODBManager
@@ -281,7 +282,6 @@ public class eGODBManager
 							try
 							{
 								stmt = con.prepareStatement(q);
-								
 								success = stmt.executeUpdate();
 								stmt.close();
 								
@@ -310,6 +310,89 @@ public class eGODBManager
 			}
 		}
 	}
+	
+	public static void addLogEntry(String repper, String recipient, double amt, String direction)
+	{
+		Connection con = getSQLConnection();
+		PreparedStatement stmt = null;
+		String q = "INSERT INTO " + eGORepConfig.sqlLogTableName + " (repper, recipient, amt, direction) VALUES (?, ?, ?, ?)";
+		
+		try
+		{
+			stmt = con.prepareStatement(q);
+			stmt.setString(1, repper);
+			stmt.setString(2, recipient);
+			stmt.setDouble(3, amt);
+			stmt.setString(4, direction);
+			
+			stmt.executeUpdate();
+			stmt.close();
+		}
+		catch (SQLException e)
+		{
+			e.printStackTrace();
+			//fix fringe cases - namely, attempt to create table
+		}
+	}
+	
+	public static String getLogEntry(String repper, String direction, int startIndex)
+	{
+		String ans = "";
+		Connection con = getSQLConnection();
+		ResultSet result;
+		PreparedStatement stmt = null;
+		String q = "SELECT * FROM " + eGORepConfig.sqlLogTableName;
+		if (repper != null) q += " WHERE `repper`=? AND `direction`=?";
+		q += " ORDER BY time DESC LIMIT " + startIndex + ", " + 10;
+		
+		try
+		{
+			stmt = con.prepareStatement(q);
+			if (repper != null)
+			{
+				stmt.setString(1, repper);
+				stmt.setString(2, direction);
+			}
+			
+			result = stmt.executeQuery();
+			while (result.next())
+				ans += "" + ChatColor.AQUA + result.getTimestamp(2) + ": " + ChatColor.RESET + result.getString(3) + (result.getString(6).equalsIgnoreCase("up") ? " gave " : (result.getString(6).equalsIgnoreCase("down") ? " took " : " set")) + (result.getString(6).equalsIgnoreCase("set") ? "" : result.getDouble(5)) + " points " + (result.getString(6).equalsIgnoreCase("up") ? "to " : (result.getString(6).equalsIgnoreCase("down") ? "from " : "for ")) + result.getString(4) + (result.getString(6).equalsIgnoreCase("set") ? (" to " + result.getDouble(5)) : "") + "\n";
+		}
+		catch (SQLException e)
+		{
+			ans = ChatColor.RED + "Error feting log from database";
+		}
+		
+		if (ans.equalsIgnoreCase(""))
+			ans = ChatColor.RED + "No results";
+		else
+			ans = ans.substring(0, ans.length() - 1);
+		
+		return ans;
+	}
+	
+	public static int logCount()
+	{
+		int ans = 0;
+		Connection con = getSQLConnection();
+		ResultSet result;
+		PreparedStatement stmt = null;
+		String q = "SELECT COUNT(*) FROM " + eGORepConfig.sqlLogTableName;
+		
+		try
+		{
+			stmt = con.prepareStatement(q);
+			result = stmt.executeQuery();
+			result.next();
+			ans = result.getInt(1);
+		}
+		catch (SQLException e)
+		{
+			
+		}
+		
+		return ans;
+	}
 }
 
 /*
@@ -322,4 +405,15 @@ CREATE TABLE IF NOT EXISTS `egorep` (
   `time` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`IGN`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+SQL code to create log database
+
+CREATE TABLE IF NOT EXISTS `replog` (
+`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+`time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
+`repper` VARCHAR( 64 ) NOT NULL ,
+`recipient` VARCHAR( 64 ) NOT NULL ,
+`amt` DOUBLE NOT NULL ,
+`direction` VARCHAR( 4 ) NOT NULL
+) ENGINE = MYISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 */
