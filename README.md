@@ -73,10 +73,10 @@ Changelog 1.1.8
 
 Major update! Changes will need to be made to some server configurations!
 
-Database field 'rep' needs to be changed to type DOUBLE
-you must add the line
-logTable: \<tableNameHere\>
-to the config file in the mysql section
+Database field 'rep' needs to be changed to type DOUBLE<br/>
+you must add the line<br/>
+logTable: \<tableNameHere\><br/>
+to the config file in the mysql section<br/>
 
 
 Changes:
