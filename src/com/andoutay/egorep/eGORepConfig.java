@@ -5,6 +5,7 @@ import org.bukkit.configuration.Configuration;
 public class eGORepConfig
 {
 	private static Configuration config;
+	private static eGORep plugin;
 	
 	public static int repPerUnit, refreshSecs;
 	public static boolean useAsync;	//DS = Dedicated Supporter
@@ -12,6 +13,7 @@ public class eGORepConfig
 	
 	eGORepConfig(eGORep plugin)
 	{
+		eGORepConfig.plugin = plugin;
 		config = plugin.getConfig().getRoot();
 		if (config.getString("mysql.host") == null || config.getString("mysql.dbName") == null);
 			config.options().copyDefaults(true);
@@ -21,6 +23,13 @@ public class eGORepConfig
 	public static void onEnable()
 	{
 		loadConfigVals();
+	}
+	
+	public static void reload()
+	{
+		plugin.reloadConfig();
+		config = plugin.getConfig().getRoot();
+		onEnable();
 	}
 	
 	private static void loadConfigVals()

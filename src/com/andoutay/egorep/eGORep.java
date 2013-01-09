@@ -79,6 +79,8 @@ public final class eGORep extends JavaPlugin
 			return version(sender);
 		else if (isLog(cmd.getName(), args))
 			return showLog(sender, args);
+		else if (isReload(cmd.getName(), args))
+			return reloadConfig(sender);
 		else if (isCheck(cmd, player, args))
 			return checkRep(sender, args);
 		
@@ -124,6 +126,11 @@ public final class eGORep extends JavaPlugin
 		return name.equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("version");
 	}
 	
+	private static boolean isReload(String name, String[] args)
+	{
+		return name.equalsIgnoreCase("rep") && args.length == 1 && args[0].equalsIgnoreCase("reload");
+	}
+	
 	private static boolean isLog(String name, String[] args)
 	{
 		return name.equalsIgnoreCase("rep") && (args.length == 1 || args.length == 2) && args[0].equalsIgnoreCase("log");
@@ -144,7 +151,7 @@ public final class eGORep extends JavaPlugin
 
 	private boolean execRep(String direction, CommandSender sender, String[] args)
 	{
-		int newamt = 0, oldamt;
+		double newamt = 0.0, oldamt;
 		boolean hasDS = false;
 		Player player = null, recipient = null;
 		if (sender instanceof Player)
@@ -172,10 +179,10 @@ public final class eGORep extends JavaPlugin
 		
 		if (newamt - oldamt != 0)
 		{
-			tellAllPlayers(recipient, direction, newamt);
-			log.info(logPref + sender.getName() + (direction == "up" ? " increased " : " decreased ") + recipient.getName() + "'s reputation to " + newamt);
+			tellAllPlayers(recipient, direction, (int)newamt);
+			log.info(logPref + sender.getName() + (direction == "up" ? " increased " : " decreased ") + recipient.getName() + "'s reputation by " + eGORepUtils.round1Decimal(newamt - oldamt) + " to " + newamt);
 			sender.sendMessage(chPref + "You have " + cManager.getPointsLeft(sender.getName()) + " reputation points left");
-			eGODBManager.addLogEntry(sender.getName(), recipient.getName(), 1, direction);
+			addLog(sender.getName(), recipient.getName(), 1, direction);
 		}
 		
 		return true;
@@ -189,7 +196,7 @@ public final class eGORep extends JavaPlugin
 			player = (Player)sender;
 		
 		final String name;
-		int rep = 0;
+		double rep = 0;
 		if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("check")))
 		{
 			if (player != null && !player.hasPermission("egorep.rep.check.self"))
@@ -227,12 +234,11 @@ public final class eGORep extends JavaPlugin
 		
 		if (offlinePlayer && eGORepConfig.useAsync)
 		{
-			log.info("weeeee");
 			final Player o = other;
 			sender.sendMessage(ChatColor.GRAY + "Fetching reputation from database...");
-			final Future<Integer> returnFuture = getServer().getScheduler().callSyncMethod(this, new Callable<Integer>() {
+			final Future<Double> returnFuture = getServer().getScheduler().callSyncMethod(this, new Callable<Double>() {
 				@Override
-				public Integer call()
+				public Double call()
 				{
 					return cManager.dbManager.getRep(name);					
 				}
@@ -244,7 +250,7 @@ public final class eGORep extends JavaPlugin
 				{
 					try
 					{
-						tellRep(sender, returnFuture.get(), name, o);
+						tellRep(sender, (int)(double)returnFuture.get(), name, o);
 					}
 					catch (InterruptedException e)
 					{
@@ -262,13 +268,23 @@ public final class eGORep extends JavaPlugin
 			rep = cManager.dbManager.getRep(name);
 		else
 			rep = cManager.getCookieForName(name);
-		tellRep(sender, rep, name, other);
+		tellRep(sender, (int)rep, name, other);
 		return true;
 	}
 	
 	private boolean setRep(CommandSender sender, String[] args)
 	{
-		int repVal = Integer.parseInt(args[2]);
+		double repVal = 0;
+		
+		try
+		{
+			repVal = Double.parseDouble(args[2]);
+		}
+		catch (NumberFormatException e)
+		{
+			sender.sendMessage(chPref + ChatColor.RED + "Invalid argument"); 
+			return false;
+		}
 		Player recipient = getPlayerForName(args[1]);
 		if (recipient == null)
 			return playerNotFound(sender, args[1], true);
@@ -276,7 +292,8 @@ public final class eGORep extends JavaPlugin
 		cManager.setCookieForName(recipient.getName(), repVal);
 		
 		sender.sendMessage(logPref + "Set reputation of " + recipient.getName() + " to " + repVal);
-		eGODBManager.addLogEntry("CONSOLE", recipient.getName(), repVal, "set");
+		if (recipient.hasPermission("egorep.showset")) recipient.sendMessage(chPref + ChatColor.GREEN + "Your" + ChatColor.RESET + " reputation was set to " + (int)repVal);
+		addLog("CONSOLE", recipient.getName(), repVal, "set");
 		
 		return true;
 	}
@@ -287,7 +304,7 @@ public final class eGORep extends JavaPlugin
 		s.sendMessage("Use /rep up <username> and /rep down <username> to give and take other players' reputation");
 		s.sendMessage("Use /rep <username> or /rep check <username> to check the reputation of other players");
 		s.sendMessage("Use /rep or /rep check to check your own reputation");
-		s.sendMessage("Remember that Dedicated Supporters get two extra rep points to use every " + parseTime((long)eGORepConfig.refreshSecs));
+		s.sendMessage("Remember that Dedicated Supporters get two extra rep points to use every " + eGORepUtils.parseTime((long)eGORepConfig.refreshSecs));
 		
 		return true;
 	}
@@ -308,9 +325,11 @@ public final class eGORep extends JavaPlugin
 		return true;
 	}
 	
-	private boolean showLog(CommandSender s, String[] args)
+	private boolean showLog(final CommandSender s, String[] args)
 	{
-		String msg = "";
+		if ((s instanceof Player) && !((Player)s).hasPermission("egorep.getlog"))
+			return noAccess(s);
+		
 		int startIndex = 0, totLogs = eGODBManager.logCount();
 		if (args.length == 2)
 		{
@@ -332,12 +351,71 @@ public final class eGORep extends JavaPlugin
 		}
 		
 		if (startIndex > totLogs) startIndex = totLogs - (totLogs % 10);
+
+		if (eGORepConfig.useAsync)
+		{
+			final int sIndex = startIndex, tLogs = totLogs;
+			s.sendMessage(ChatColor.GRAY + "Fetching log from database...");
+			final Future<String> returnFuture = getServer().getScheduler().callSyncMethod(this, new Callable<String>() {
+				@Override
+				public String call()
+				{
+					return eGODBManager.getLogEntry(null, null, sIndex);					
+				}
+			});
+
+			getServer().getScheduler().runTaskAsynchronously(this, new Runnable() {
+				@Override
+				public void run()
+				{
+					try
+					{
+						s.sendMessage(chPref + "Log page " + (sIndex / 10 + 1) + " of " + (tLogs / 10 + ((tLogs % 10 == 0) ? 0 : 1)));
+						s.sendMessage(returnFuture.get());
+					}
+					catch (InterruptedException e)
+					{
+						s.sendMessage(chPref+ "DB connection interrupted. Unable to get logs.");
+					}
+					catch (ExecutionException e)
+					{
+						s.sendMessage(chPref + "Unable to get logs");
+					}
+				}
+			});
+		}
+		else
+		{
+			s.sendMessage(chPref + "Log page " + (startIndex / 10 + 1) + " of " + (totLogs / 10 + ((totLogs % 10 == 0) ? 0 : 1)));
+			s.sendMessage(eGODBManager.getLogEntry(null, null, startIndex));
+		}
+
+		return true;
+	}
+	
+	private boolean reloadConfig(CommandSender s)
+	{
+		if (s instanceof Player && !((Player)s).hasPermission("egorep.reload"))
+			return noAccess(s);
 		
-		msg = eGODBManager.getLogEntry(null, null, startIndex);
-		s.sendMessage(chPref + "Log page " + (startIndex / 10 + 1) + " of " + (totLogs / 10 + ((totLogs % 10 == 0) ? 0 : 1)));
-		s.sendMessage(msg);
+		eGORepConfig.reload();
+		s.sendMessage(chPref + "Config reloaded");
 		
 		return true;
+	}
+	
+	private void addLog(final String repper, final String recipient, final double amt, final String direction)
+	{
+		if (eGORepConfig.useAsync)
+		{
+			getServer().getScheduler().runTaskAsynchronously(this, new Runnable() {
+				public void run() {
+					eGODBManager.addLogEntry(repper, recipient, amt, direction);					
+				}
+			});
+		}
+		else
+			eGODBManager.addLogEntry(repper, recipient, amt, direction);
 	}
 	
 	private boolean playerNotFound(CommandSender sender, String name, boolean online)
@@ -392,18 +470,5 @@ public final class eGORep extends JavaPlugin
 			sender.sendMessage(chPref + "You have a reputation of " + rep);
 		else
 			sender.sendMessage(chPref + ((other == null) ? name : other.getDisplayName()) + " has a reputation of " + rep);
-	}
-	
-	public static String parseTime(Long timestamp)
-	{
-		String h, m, s;
-		long hour, min, sec;
-		hour = timestamp / 3600;
-		min = (timestamp - hour * 3600) / 60;
-		sec = timestamp- hour * 3600 - min * 60;
-		h = (hour == 1) ? "hour" : "hours";
-		m = (min == 1) ? "min" : "mins";
-		s = (sec == 1) ? "sec" : "secs";
-		return hour + " " + h + " " + min + " " + m + " " + sec + " " + s;
 	}
 }

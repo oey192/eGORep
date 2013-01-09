@@ -52,14 +52,14 @@ public class eGODBManager
 		return null;
 	}
 	
-	public void setAll(final String name, final int rep, final int points, final Long timestamp)
+	public void setAll(String name, double rep, int points, final Long timestamp)
 	{
 			setRep(name, rep);
 			setRemPoints(name, points);
 			setTime(name, timestamp);
 	}
 
-	public void setVal(String dbField, String name, long val)
+	public void setVal(String dbField, String name, double val, String type)
 	{
 		Connection con = getSQLConnection();
 		PreparedStatement stmt = null;
@@ -69,7 +69,12 @@ public class eGODBManager
 		try
 		{
 			stmt = con.prepareStatement(q);
-			stmt.setLong(1, val);
+			if (type == "int")
+				stmt.setInt(1, (int)val);
+			else if (type == "long")
+				stmt.setLong(1, (long)val);
+			else if (type == "double")
+				stmt.setDouble(1, val);
 			stmt.setString(2, name);
 			
 			success = stmt.executeUpdate();
@@ -121,13 +126,14 @@ public class eGODBManager
 		return ans;
 	}
 	
-	public int getInt(String dbField, String name)
+	public Object getVal(String dbField, String name)
 	{
 		Connection con = getSQLConnection();
 		PreparedStatement stmt = null;
 		String q = "SELECT " + dbField + " FROM " + eGORepConfig.sqlTableName + " WHERE `IGN` = ?";
 		ResultSet result;
-		int ans = 0, success = 0;
+		int success = 0;
+		Object ans = null;
 		
 		try
 		{
@@ -137,7 +143,7 @@ public class eGODBManager
 			result = stmt.executeQuery();
 			if (result.next())
 				success = 1;
-			ans = result.getInt(dbField);
+			ans = result.getObject(dbField);
 			stmt.close();
 		}
 		catch (SQLException e)
@@ -156,18 +162,18 @@ public class eGODBManager
 		return ans;
 	}
 
-	public void setRep(final String name, final int rep)
+	public void setRep(final String name, final double rep)
 	{
 		if (eGORepConfig.useAsync)
 		{
 			scheduler.runTaskAsynchronously(plugin, new Runnable() {
 				public void run() {
-					setVal("rep", name, rep);					
+					setVal("rep", name, rep, "double");					
 				}
 			});
 		}
 		else
-			setVal("rep", name, rep);
+			setVal("rep", name, rep, "double");
 	}
 	
 	public void setRemPoints(final String name, final int points)
@@ -176,12 +182,12 @@ public class eGODBManager
 		{
 			scheduler.runTaskAsynchronously(plugin, new Runnable() {
 				public void run() {
-					setVal("points", name, points);					
+					setVal("points", name, points, "int");					
 				}
 			});
 		}
 		else
-			setVal("points", name, points);
+			setVal("points", name, points, "int");
 	}
 
 	public void setTime(final String name, final Long timestamp)
@@ -190,27 +196,27 @@ public class eGODBManager
 		{
 			scheduler.runTaskAsynchronously(plugin, new Runnable() {
 				public void run() {
-					setVal("time", name, timestamp);					
+					setVal("time", name, timestamp, "long");					
 				}
 			});
 		}
 		else
-			setVal("time", name, timestamp);
+			setVal("time", name, timestamp, "long");
 	}
 
-	public int getRep(final String name)
+	public double getRep(final String name)
 	{
-		return getInt("rep", name);
+		return (Double)getVal("rep", name);
 	}
 
 	public int getRemPoints(String name)
 	{
-		return getInt("points", name);
+		return (Integer)getVal("points", name);
 	}
 
 	public Long getTime(String name)
 	{
-		return getLong("time", name);
+		return (Long)getVal("time", name);
 	}
 	
 	
@@ -256,7 +262,7 @@ public class eGODBManager
 					{
 						success = 0;
 						eGORep.log.info(eGORep.logPref + "Attempting to create table " + eGORepConfig.sqlTableName);
-						q = "CREATE TABLE IF NOT EXISTS `" + eGORepConfig.sqlTableName + "` (`IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL, `rep` int(11) NOT NULL DEFAULT '0', `points` int(11) NOT NULL DEFAULT '3', `time` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`IGN`)) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
+						q = "CREATE TABLE IF NOT EXISTS `" + eGORepConfig.sqlTableName + "` (`IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL, `rep` double NOT NULL DEFAULT '0', `points` int(11) NOT NULL DEFAULT '3', `time` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`IGN`)) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
 						try
 						{
 							stmt = con.prepareStatement(q); 
@@ -317,21 +323,24 @@ public class eGODBManager
 		PreparedStatement stmt = null;
 		String q = "INSERT INTO " + eGORepConfig.sqlLogTableName + " (repper, recipient, amt, direction) VALUES (?, ?, ?, ?)";
 		
-		try
+		for (int i = 0; i < 2; i++)
 		{
-			stmt = con.prepareStatement(q);
-			stmt.setString(1, repper);
-			stmt.setString(2, recipient);
-			stmt.setDouble(3, amt);
-			stmt.setString(4, direction);
-			
-			stmt.executeUpdate();
-			stmt.close();
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-			//fix fringe cases - namely, attempt to create table
+			try
+			{
+				stmt = con.prepareStatement(q);
+				stmt.setString(1, repper);
+				stmt.setString(2, recipient);
+				stmt.setDouble(3, amt);
+				stmt.setString(4, direction);
+
+				stmt.executeUpdate();
+				stmt.close();
+				i = 2;
+			}
+			catch (SQLException e)
+			{
+				createLogTable();
+			}
 		}
 	}
 	
@@ -371,6 +380,33 @@ public class eGODBManager
 		return ans;
 	}
 	
+	private static void createLogTable()
+	{
+		if (eGORepConfig.sqlTableName.equalsIgnoreCase(""))
+		{
+			eGORep.log.severe(eGORep.logPref + "Log table name is blank! Edit config.yml to include a log table name");
+			return;
+		}
+		
+		Connection con = getSQLConnection();
+		PreparedStatement stmt = null;
+		
+		eGORep.log.info(eGORep.logPref + "Attempting to create table " + eGORepConfig.sqlLogTableName);
+		String q = "CREATE TABLE IF NOT EXISTS `" + eGORepConfig.sqlLogTableName + "` (`id` int(11) NOT NULL AUTO_INCREMENT, `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, `repper` varchar(64) COLLATE utf8_unicode_ci NOT NULL, `recipient` varchar(64) COLLATE utf8_unicode_ci NOT NULL, `amt` double NOT NULL, `direction` varchar(4) COLLATE utf8_unicode_ci NOT NULL, PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
+		try
+		{
+			stmt = con.prepareStatement(q); 
+			stmt.executeUpdate();
+			stmt.close();
+			
+			eGORep.log.info("Created table " + eGORepConfig.sqlLogTableName);
+		}
+		catch (SQLException e)
+		{
+			eGORep.log.warning(eGORep.logPref + "Could not create table " + eGORepConfig.sqlLogTableName + ".");
+		}
+	}
+	
 	public static int logCount()
 	{
 		int ans = 0;
@@ -400,7 +436,7 @@ public class eGODBManager
 
 CREATE TABLE IF NOT EXISTS `egorep` (
   `IGN` varchar(128) COLLATE utf8_unicode_ci NOT NULL,
-  `rep` int(11) NOT NULL DEFAULT '0',
+  `rep` double NOT NULL DEFAULT '0',
   `points` int(11) NOT NULL DEFAULT '3',
   `time` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`IGN`)
@@ -409,11 +445,12 @@ CREATE TABLE IF NOT EXISTS `egorep` (
 SQL code to create log database
 
 CREATE TABLE IF NOT EXISTS `replog` (
-`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
-`time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
-`repper` VARCHAR( 64 ) NOT NULL ,
-`recipient` VARCHAR( 64 ) NOT NULL ,
-`amt` DOUBLE NOT NULL ,
-`direction` VARCHAR( 4 ) NOT NULL
-) ENGINE = MYISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `repper` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `recipient` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `amt` double NOT NULL,
+  `direction` varchar(4) COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 */

@@ -1,7 +1,8 @@
-package com.andoutay.egorep;
+ package com.andoutay.egorep;
 
 import java.util.HashMap;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,7 +12,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 public class eGORepCookieManager implements Listener
 {
-	private HashMap<String, Integer> rep;
+	private HashMap<String, Double> rep;
 	private HashMap<String, Integer> points;
 	private HashMap<String, Long> times;
 	public eGODBManager dbManager;
@@ -19,13 +20,13 @@ public class eGORepCookieManager implements Listener
 	public eGORepCookieManager(eGORep plugin)
 	{
 		//initialize rep based on database
-		rep = new HashMap<String, Integer>();
+		rep = new HashMap<String, Double>();
 		points = new HashMap<String, Integer>();
 		times = new HashMap<String, Long>();
 		dbManager = new eGODBManager(plugin);
 	}
 	
-	private int modCookieForName(CommandSender sender, String recipient, boolean hasDS, int amt)
+	private double modCookieForName(CommandSender sender, String recipient, boolean hasDS, double amt)
 	{
 		int totRepPoints = eGORepConfig.repPerUnit + ((hasDS) ? 2 : 0);
 		String repper = sender.getName();
@@ -34,8 +35,12 @@ public class eGORepCookieManager implements Listener
 			sender.sendMessage(eGORep.chPref + "You may not modify your own reputation");
 		else
 		{
+			amt = correctAmt(amt, repper, recipient);
+			if (amt == 0)
+				sender.sendMessage(eGORep.chPref + ChatColor.RED + "You must modify reputation of other players before modifying " + recipient + "'s reputation that way");
+			
 			//initialize newval to 1 in case recipient isn't in database
-			int newval = 1;
+			double newval = 1;
 
 			//get recipient's rep if they're in the hashmap
 			if (rep.containsKey(recipient))
@@ -52,19 +57,32 @@ public class eGORepCookieManager implements Listener
 			//apply the reputation modification if repper is not out of points
 			if (points.get(repper) > 0)
 			{
-				newval+=amt;
+				newval = eGORepUtils.round1Decimal(newval + amt);
 				points.put(repper, points.get(repper) - 1);
 
-				if (points.get(repper) == 0 && getSecondsLeft(repper) == 0)
+				if (points.get(repper) == (totRepPoints - 1) && getSecondsLeft(repper) == 0)
 					times.put(repper, unixTimeNow());
 			}
 			//player is out of rep points to use
 			else
-				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + eGORep.parseTime(getSecondsLeft(repper)) + " before using /rep up or down again");
+				sender.sendMessage(eGORep.chPref + "You are out of reputation points to use\nYou must wait " + eGORepUtils.parseTime(getSecondsLeft(repper)) + " before using /rep up or down again");
 
 			rep.put(recipient, newval);
 		}
 		return rep.get(recipient);
+	}
+	
+	private double correctAmt(double amt, String repper, String recipient)
+	{
+		String direction = (amt == 1 ? "up" : "down");
+		String lines[] = eGODBManager.getLogEntry(repper, direction, 0).split("\n");
+		double dec = - 0.1 * amt; 
+		
+		for (String line : lines) 
+			if (line.contains("r" + repper) && line.contains(" " + recipient))
+				amt += dec;
+		
+		return eGORepUtils.round1Decimal(amt);
 	}
 	
 	@EventHandler
@@ -99,25 +117,24 @@ public class eGORepCookieManager implements Listener
 		return System.currentTimeMillis() / 1000L;
 	}
 	
-	public int incrCookieForName(CommandSender sender, String recipient, boolean hasDS)
+	public double incrCookieForName(CommandSender sender, String recipient, boolean hasDS)
 	{
 		return modCookieForName(sender, recipient, hasDS, 1);
 	}
 	
-	public int decrCookieForName(CommandSender sender, String recipient, boolean hasDS)
+	public double decrCookieForName(CommandSender sender, String recipient, boolean hasDS)
 	{
 		return modCookieForName(sender, recipient, hasDS, -1);
 	}
 	
-	public void setCookieForName(String name, int val)
+	public void setCookieForName(String name, double val)
 	{
 		rep.put(name, val);
 	}
 	
-	public int getCookieForName(String name)
+	public double getCookieForName(String name)
 	{
-		if (!rep.containsKey(name))
-			rep.put(name, 0);
+		if (!rep.containsKey(name)) rep.put(name, 0.0);
 		return rep.get(name);
 	}
 	
