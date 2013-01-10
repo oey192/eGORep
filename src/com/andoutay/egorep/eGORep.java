@@ -53,10 +53,7 @@ public final class eGORep extends JavaPlugin
 		//stop the syncing from the database from executing in new threads since we need to assure it finishes before the server stops
 		eGORepConfig.useAsync = false;
 		for (Player p: getServer().getOnlinePlayers())
-		{
-			log.info(p.getName() + " is still here");
 			cManager.saveAndUnLoadPlayer(p.getName());
-		}
 		
 		getServer().getScheduler().cancelTasks(this);
 		log.info(logPref + "disabled");

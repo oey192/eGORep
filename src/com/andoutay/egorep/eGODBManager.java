@@ -159,6 +159,9 @@ public class eGODBManager
 		if (success < 1)
 			fixFringeCases(con, name, dbField);
 		
+		if (ans == null)
+			ans = new Double(0);
+		
 		return ans;
 	}
 
