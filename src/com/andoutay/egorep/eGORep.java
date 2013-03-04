@@ -215,7 +215,7 @@ public final class eGORep extends JavaPlugin
 			if (other == null)
 			{
 				//If a player with the name of recipName has not been on the server, they will have a lastPlayed time of 0
-				if (getServer().getOfflinePlayer(recipName).getLastPlayed() > 0)
+				if (getServer().getOfflinePlayer(recipName).hasPlayedBefore())
 				{
 					name = getServer().getOfflinePlayer(recipName).getName();
 					offlinePlayer = true;
@@ -444,7 +444,7 @@ public final class eGORep extends JavaPlugin
 		
 		if (player == null)
 			for (Player p: getServer().getOnlinePlayers())
-				if (p.getDisplayName().contains(partial))
+				if (p.getDisplayName().toLowerCase().contains(partial.toLowerCase()))
 				{
 					if (found)
 					{
